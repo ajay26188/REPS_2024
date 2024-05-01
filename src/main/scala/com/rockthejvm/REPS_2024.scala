@@ -5,9 +5,10 @@ We downloaded 3 different datasets for HydroPowerGeneration, WindPowerGeneration
 package com.rockthejvm
 
 import scala.io.Source
-import java.io.{BufferedWriter,FileWriter,PrintWriter}
+import java.io.{BufferedWriter,FileWriter}
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
+import java.time.format.DateTimeParseException
 import org.json4s._
 import org.json4s.native.JsonMethods._
 
@@ -27,17 +28,38 @@ object REPS_2024 extends App{
 
   //For this use case, Users are asked information about energy data and data are
   //stored in respective files.
-  val formatter: DateTimeFormatter = DateTimeFormatter.ISO_DATE_TIME
   def collectEnergyValue(source: String):Unit = {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+
     println("Enter datasetId:")
     val datasetId = scala.io.StdIn.readLine()
 
+    //Asking user for date and time and implementing error HANDLING.
     println("Enter start time (YYYY-MM-DDTHH:MM:SS):")
-    val startTime = LocalDateTime.parse(scala.io.StdIn.readLine(), formatter)
+    var startTime: LocalDateTime = null
+    var correctStartTime = false
+    while (!correctStartTime) {
+      try {
+        startTime = LocalDateTime.parse(scala.io.StdIn.readLine(), formatter)
+        correctStartTime = true
+      } catch {
+        case e: DateTimeParseException =>
+          println("Invalid format. Please enter in YYYY-MM-DDTHH:MM:SS format.")
+      }
+    }
 
     println("Enter end time (YYYY-MM-DDTHH:MM:SS):")
-    val endTime = LocalDateTime.parse(scala.io.StdIn.readLine(), formatter)
-
+    var endTime: LocalDateTime = null
+    var correctEndTime = false
+    while (!correctEndTime) {
+      try {
+        endTime = LocalDateTime.parse(scala.io.StdIn.readLine(), formatter)
+        correctEndTime = true
+      } catch {
+        case e: DateTimeParseException =>
+          println("Invalid format. Please enter in YYYY-MM-DDTHH:MM:SS format.")
+      }
+    }
     println("Enter the value:")
     val value = scala.io.StdIn.readDouble()
 
