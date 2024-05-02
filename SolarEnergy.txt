@@ -1,2 +1,0 @@
-datasetId: 1,startTime: 2024-05-01T00:00,endTime: 2024-05-01T00:15,value: 25.0
-datasetId: 1,startTime: 2024-05-01T00:15,endTime: 2024-05-01T00:30,value: 100.0

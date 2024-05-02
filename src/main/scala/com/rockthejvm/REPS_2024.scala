@@ -4,16 +4,20 @@ We downloaded 3 different datasets for HydroPowerGeneration, WindPowerGeneration
 
 package com.rockthejvm
 
+import java.time.LocalDate
+import java.time.YearMonth
+
 import scala.io.Source
 import java.io.{BufferedWriter,FileWriter}
 import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
+import java.io.File
 import org.json4s._
 import org.json4s.native.JsonMethods._
 
 //First defining a case class to represent renewable energy data
-case class RenewableEnergyData(datasetId: Int, startTime: String, endTime: String, value: Double)
+case class RenewableEnergyData(datasetId: Int, startTime: LocalDateTime, endTime: LocalDateTime, value: Double)
 object REPS_2024 extends App{
 
   /*
@@ -28,14 +32,15 @@ object REPS_2024 extends App{
 
   //For this use case, Users are asked information about energy data and data are
   //stored in respective files.
+
   def collectEnergyValue(source: String):Unit = {
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
 
     println("Enter datasetId:")
     val datasetId = scala.io.StdIn.readLine()
 
     //Asking user for date and time and implementing error HANDLING.
-    println("Enter start time (YYYY-MM-DDTHH:MM:SS):")
+    println("Enter start time (YYYY-MM-DDTHH:MM):")
     var startTime: LocalDateTime = null
     var correctStartTime = false
     while (!correctStartTime) {
@@ -44,11 +49,11 @@ object REPS_2024 extends App{
         correctStartTime = true
       } catch {
         case e: DateTimeParseException =>
-          println("Invalid format. Please enter in YYYY-MM-DDTHH:MM:SS format.")
+          println("Invalid format. Please enter in YYYY-MM-DDTHH:MM format.")
       }
     }
 
-    println("Enter end time (YYYY-MM-DDTHH:MM:SS):")
+    println("Enter end time (YYYY-MM-DDTHH:MM):")
     var endTime: LocalDateTime = null
     var correctEndTime = false
     while (!correctEndTime) {
@@ -57,7 +62,7 @@ object REPS_2024 extends App{
         correctEndTime = true
       } catch {
         case e: DateTimeParseException =>
-          println("Invalid format. Please enter in YYYY-MM-DDTHH:MM:SS format.")
+          println("Invalid format. Please enter in YYYY-MM-DDTHH:MM format.")
       }
     }
     println("Enter the value:")
@@ -104,6 +109,104 @@ object REPS_2024 extends App{
   required data stored in the system.
   Data Analysis should include: Mean, Median, Mode, Range, and Midrange
   */
+  // Creating a function to parse a line of data from the file into RenewableEnergyData
+  def parseLine(line: String): RenewableEnergyData = {
+    val fields = line.trim.split(",")
+    val datasetId = fields(0).split(":")(1).trim.toInt
+    val startTime = LocalDateTime.parse(fields(1).split(":")(1).trim + ":" + fields(1).split(":")(2).trim, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+    val endTime = LocalDateTime.parse(fields(2).split(":")(1).trim + ":" + fields(2).split(":")(2).trim, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+    val value = fields(3).split(":")(1).trim.toDouble
+    RenewableEnergyData(datasetId, startTime, endTime, value)
+  }
+
+
+  // Creating a fununction to read data from file (for demo purpose: we use "SolarEnergy.txt" and return as a list of RenewableEnergyData
+  def readData(filePath: String): List[RenewableEnergyData] = {
+    val bufferedSource = Source.fromFile(filePath)
+    val dataList = bufferedSource.getLines().map(parseLine).toList
+    bufferedSource.close
+    dataList
+  }
+
+  // Creating a function to filter data based on user-specified criteria(data filtering)
+  def filterData(data: List[RenewableEnergyData], filter: String, value: Option[Any] = None): List[RenewableEnergyData] = {
+    filter match {
+      case "hourly" =>
+        val hourStart = LocalDateTime.parse(value.get.toString, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+        val hourEnd = hourStart.plusHours(1)
+        data.filter(d => (d.startTime.isEqual(hourStart) || d.startTime.isAfter(hourStart)) && d.startTime.isBefore(hourEnd))
+      case "daily" =>
+        val date = LocalDate.parse(value.get.toString, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        data.filter(d => d.startTime.toLocalDate == date)
+      case "weekly" =>
+        val weekStart = LocalDate.parse(value.get.toString, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+        val weekEnd = weekStart.plusDays(7)
+        data.filter(d => d.startTime.toLocalDate.isEqual(weekStart) || d.startTime.toLocalDate.isBefore(weekEnd))
+      case "monthly" =>
+        val month = YearMonth.parse(value.get.toString, DateTimeFormatter.ofPattern("yyyy-MM"))
+        data.filter(d => d.startTime.getMonthValue == month.getMonthValue)
+      case _ => throw new IllegalArgumentException("Invalid filter provided")
+    }
+  }
+
+
+  //Reading data from "SolarEnergy.txt"
+  val sampleData = readData("SolarEnergy.txt")
+
+
+  var continue = true
+  while (continue) {
+    // Asking the user for filter criteria
+    println("Enter filter criteria: hourly, daily, weekly, monthly ? Type e to exit")
+    val filter = scala.io.StdIn.readLine()
+
+    if (filter == "e") {
+      continue = false
+    }
+    else {
+      // Printing the value based on the selected filter
+      val value = filter match {
+        case "hourly" =>
+          println("Enter hour (format: yyyy-MM-dd'T'HH:mm):")
+          Some(scala.io.StdIn.readLine())
+        case "daily" =>
+          println("Enter date (format: yyyy-MM-dd):")
+          Some(scala.io.StdIn.readLine())
+        case "weekly" =>
+          println("Enter start date of the week (format: yyyy-MM-dd):")
+          Some(scala.io.StdIn.readLine())
+        case "monthly" =>
+          println("Enter month (format: yyyy-MM):")
+          Some(scala.io.StdIn.readLine())
+        case e => //Exit the loop
+          continue = false
+          None
+        case _ => None
+      }
+
+      // Filter data based on user input
+      val filteredData = filterData(sampleData, filter, value)
+
+      // Print filtered data
+      println("Filtered Data:")
+      filteredData.foreach(println)
+    }
+
+    //Data Analysis
+    //Calculating mean
+    def meanCalculation(values: List[Double]): Double = {
+      values.sum / values.length
+    }
+
+    def dataAnalysis(values: List[Double]): Unit = {
+      println(s"Mean: ${meanCalculation(values)}")
+    }
+
+    val values = sampleData.map(_.value)
+
+    dataAnalysis(values)
+  }
+
 
   /*
   Use case 5:  The system should be able to detect and handle issues with renewable energy sources,
