@@ -1,0 +1,1 @@
+datasetId: 2,startTime: 2024-05-02T21:00,endTime: 2024-05-02T22:00,value: 250.0
