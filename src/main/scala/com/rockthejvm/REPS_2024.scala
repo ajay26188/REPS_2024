@@ -109,6 +109,7 @@ object REPS_2024 extends App{
   required data stored in the system.
   Data Analysis should include: Mean, Median, Mode, Range, and Midrange
   */
+
   // Creating a function to parse a line of data from the file into RenewableEnergyData
   def parseLine(line: String): RenewableEnergyData = {
     val fields = line.trim.split(",")
@@ -118,7 +119,6 @@ object REPS_2024 extends App{
     val value = fields(3).split(":")(1).trim.toDouble
     RenewableEnergyData(datasetId, startTime, endTime, value)
   }
-
 
   // Creating a fununction to read data from file (for demo purpose: we use "SolarEnergy.txt" and return as a list of RenewableEnergyData
   def readData(filePath: String): List[RenewableEnergyData] = {
@@ -149,10 +149,8 @@ object REPS_2024 extends App{
     }
   }
 
-
   //Reading data from "SolarEnergy.txt"
   val sampleData = readData("SolarEnergy.txt")
-
 
   var continue = true
   while (continue) {
@@ -184,22 +182,49 @@ object REPS_2024 extends App{
         case _ => None
       }
 
-      // Filter data based on user input
+      // Printing filtered data based on user input
       val filteredData = filterData(sampleData, filter, value)
-
-      // Print filtered data
       println("Filtered Data:")
       filteredData.foreach(println)
     }
 
     //Data Analysis
-    //Calculating mean
     def meanCalculation(values: List[Double]): Double = {
       values.sum / values.length
     }
 
+    def medianCalculation(values: List[Double]): Double = {
+      val sortedValues = values.sorted
+      val a = sortedValues.length
+      if (a % 2 == 0) {
+        val midIndex1 = (a / 2) - 1
+        val midIndex2 = a / 2
+        (sortedValues(midIndex1) + sortedValues(midIndex2)) / 2
+      } else {
+        sortedValues(a / 2)
+      }
+    }
+    def modeCalculation(values: List[Double]): Any= {
+      val allValues = values.groupBy(identity)
+      val maxFrequency = allValues.map(_._2.size).max
+      val modes = allValues.filter(_._2.size == maxFrequency).keys.toList
+      if (modes.size == 1) modes.head else modes
+    }
+
+    def rangeCalculation(values: List[Double]): Double = {
+      values.max - values.min
+    }
+
+    def midrangeCalculation(values: List[Double]): Double = {
+      (values.min + values.max) / 2
+    }
+
     def dataAnalysis(values: List[Double]): Unit = {
       println(s"Mean: ${meanCalculation(values)}")
+      println(s"Median: ${medianCalculation(values)}")
+      println(s"Mode: ${modeCalculation(values)}")
+      println(s"Range: ${rangeCalculation(values)}")
+      println(s"Midrange: ${midrangeCalculation(values)}")
     }
 
     val values = sampleData.map(_.value)
