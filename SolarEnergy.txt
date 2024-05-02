@@ -10,3 +10,6 @@ datasetId: 1,startTime: 2024-05-10T20:00,endTime: 2024-05-10T21:00,value: 1234.0
 datasetId: 1,startTime: 2024-05-11T20:00,endTime: 2024-05-11T21:00,value: 344.0
 datasetId: 1,startTime: 2024-05-12T20:00,endTime: 2024-05-12T21:00,value: 200.0
 datasetId: 1,startTime: 2024-05-13T06:00,endTime: 2024-05-13T07:00,value: 200.0
+datasetId: 1,startTime: 2024-05-22T22:00,endTime: 2024-05-22T23:00,value: 300.0
+datasetId: 1,startTime: 2024-05-23T09:00,endTime: 2024-05-23T10:00,value: 230.0
+datasetId: 1,startTime: 2024-05-25T23:00,endTime: 2024-05-25T00:00,value: 500.0
