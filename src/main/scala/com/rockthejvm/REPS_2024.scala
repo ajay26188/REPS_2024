@@ -12,7 +12,6 @@ import java.time.format.DateTimeParseException
 //First defining a case class to represent renewable energy data
 case class RenewableEnergyData(datasetId: Int, startTime: LocalDateTime, endTime: LocalDateTime, value: Double)
 object REPS_2024 extends App{
-
   def menu(): Unit = {
     var exit = false
     while (!exit) {
@@ -217,8 +216,7 @@ object REPS_2024 extends App{
           }
 
         case "5" =>
-          println("Selected use case: Detect and handle issues with renewable energy sources")
-        // Your code for this use case goes here
+        // Write code for this use case goes here
         case "6" =>
           println("Program Ends!")
           exit = true
