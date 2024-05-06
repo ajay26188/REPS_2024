@@ -9,6 +9,7 @@ import java.time.{LocalDate, LocalDateTime, YearMonth}
 import scala.io.Source
 import scala.io.StdIn.readLine
 
+
 object GetData {
   import java.io.BufferedReader
   import java.io.InputStreamReader
@@ -21,7 +22,6 @@ object GetData {
       val url = new URL(urlString)
       val connection = url.openConnection().asInstanceOf[HttpURLConnection]
 
-      // Request headers
       connection.setRequestProperty("Cache-Control", "no-cache")
       connection.setRequestProperty("x-api-key", "dde765149c744ba3bc873d756b9ed406")
       connection.setRequestMethod("GET")
@@ -37,16 +37,23 @@ object GetData {
         inputLine = in.readLine()
       }
       in.close()
-
-      println(content.toString)  // Print the JSON response
+      printJsonObjects(content.toString())
 
       connection.disconnect()
     } catch {
       case ex: Exception => println(s"Exception: ${ex.getMessage}")
     }
   }
-}
 
+  // Modified to split and print each JSON object on a new line with a blank line in between
+  private def printJsonObjects(jsonStr: String): Unit = {
+    val objects = jsonStr.split("},")
+    objects.foreach { obj =>
+      println(obj.trim + "}")
+      println()  // Print an empty line after each object for better readability
+    }
+  }
+}
 object DataCollector {def detectAndHandleIssues(data: List[RenewableEnergyData]): Unit = {
   val lowEnergyThreshold = 50.0 // Assumed low energy threshold
   val issues = data.filter(d => d.value < lowEnergyThreshold)
@@ -140,7 +147,13 @@ object REPS_2024 extends App{
   def menu(): Unit = {
     var exit = false
     while (!exit) {
-      println("Select a use case from 1 to 5.Type 6 to end the program!")
+      println("Select a use case from 1 to 5. Type 6 to end the program!")
+      println("1: Monitor data for renewable energy sources.")
+      println("2: Manually enter and record energy data.")
+      println("3: Display information from Power Plant Info.")
+      println("4: Filter and analyze existing energy data.")
+      println("5: Check and handle issues in energy outputs and equipment.")
+      println("6: Exit.")
       print("Enter your choice: ")
       val choice = scala.io.StdIn.readLine()
       choice match {
