@@ -1,17 +1,142 @@
 
 package com.rockthejvm
 
-import java.time.LocalDate
-import java.time.YearMonth
-import scala.io.Source
+import com.rockthejvm.DataCollector.detectAndHandleIssues
+
 import java.io.{BufferedWriter, FileWriter}
-import java.time.format.DateTimeFormatter
-import java.time.LocalDateTime
-import java.time.format.DateTimeParseException
+import java.time.format.{DateTimeFormatter, DateTimeParseException}
+import java.time.{LocalDate, LocalDateTime, YearMonth}
+import scala.io.Source
+import scala.io.StdIn.readLine
+
+object GetData {
+  import java.io.BufferedReader
+  import java.io.InputStreamReader
+  import java.net.HttpURLConnection
+  import java.net.URL
+
+  def fetchData(dataID: String): Unit = {
+    try {
+      val urlString = s"https://data.fingrid.fi/api/datasets/$dataID/data?format=json&locale=en&sortBy=startTime&sortOrder=desc"
+      val url = new URL(urlString)
+      val connection = url.openConnection().asInstanceOf[HttpURLConnection]
+
+      // Request headers
+      connection.setRequestProperty("Cache-Control", "no-cache")
+      connection.setRequestProperty("x-api-key", "dde765149c744ba3bc873d756b9ed406")
+      connection.setRequestMethod("GET")
+
+      val status = connection.getResponseCode
+      println(s"HTTP Status: $status")
+
+      val in = new BufferedReader(new InputStreamReader(connection.getInputStream))
+      val content = new StringBuilder
+      var inputLine = in.readLine()
+      while (inputLine != null) {
+        content.append(inputLine)
+        inputLine = in.readLine()
+      }
+      in.close()
+
+      println(content.toString)  // Print the JSON response
+
+      connection.disconnect()
+    } catch {
+      case ex: Exception => println(s"Exception: ${ex.getMessage}")
+    }
+  }
+}
+
+object DataCollector {def detectAndHandleIssues(data: List[RenewableEnergyData]): Unit = {
+  val lowEnergyThreshold = 50.0 // Assumed low energy threshold
+  val issues = data.filter(d => d.value < lowEnergyThreshold)
+
+  if (issues.nonEmpty) {
+    println("Warning: Low energy output detected in the following records:")
+    issues.foreach { issue =>
+      println(s"Dataset ID: ${issue.datasetId}, Start: ${issue.startTime}, End: ${issue.endTime}, Value: ${issue.value}")
+    }
+  } else {
+    println("No low energy outputs detected.")
+  }
+
+  // Assuming fault detection, the actual logic may need to be more complex
+  val potentialMalfunctions = data.sliding(3).filter { window =>
+    window.map(_.value).forall(_ < lowEnergyThreshold)
+  }.toList
+
+  if (potentialMalfunctions.nonEmpty) {
+    println("Potential equipment malfunction detected due to consistent low energy output over multiple intervals.")
+    potentialMalfunctions.foreach { malfunction =>
+      malfunction.foreach { entry =>
+        println(s"Potential malfunction -> Dataset ID: ${entry.datasetId}, Time: ${entry.startTime} to ${entry.endTime}, Value: ${entry.value}")
+      }
+    }
+  } else {
+    println("No equipment malfunctions detected.")
+  }
+}
+  def monitorWindData(): Unit = {
+    val windTurbinesId = "181"
+    println("Monitoring wind turbine data:")
+    GetData.fetchData(windTurbinesId)
+  }
+
+  def monitorSolarData(): Unit = {
+    val solarPanelsId = "248"
+    println("Monitoring solar panel data:")
+    GetData.fetchData(solarPanelsId)
+  }
+
+  def monitorHydroData(): Unit = {
+    val hydroPowerId = "191"
+    println("Monitorhing hydropower data:")
+    GetData.fetchData(hydroPowerId)
+  }
+
+  def run(): Unit = {
+    var continue = true
+    while (continue) {
+      println("\nEnter the type of data to monitor:")
+      println("1: Wind Turbine Data")
+      println("2: Solar Panel Data")
+      println("3: Hydropower Data")
+      println("0: Exit")
+      val choice = readLine("Please enter your choice (0-3): ")
+
+      choice match {
+        case "1" => monitorWindData()
+        case "2" => monitorSolarData()
+        case "3" => monitorHydroData()
+        case "0" =>
+          println("Exiting the monitor")
+          continue = false
+        case _ => println("Invalid choice, please enter a number between 0 and 3.")
+      }
+    }
+  }
+}
 
 //First defining a case class to represent renewable energy data
 case class RenewableEnergyData(datasetId: Int, startTime: LocalDateTime, endTime: LocalDateTime, value: Double)
 object REPS_2024 extends App{
+  // Creating a function to parse a line of data from the file into RenewableEnergyData
+  def parseLine(line: String): RenewableEnergyData = {
+    val fields = line.trim.split(",")
+    val datasetId = fields(0).split(":")(1).trim.toInt
+    val startTime = LocalDateTime.parse(fields(1).split(":")(1).trim + ":" + fields(1).split(":")(2).trim, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+    val endTime = LocalDateTime.parse(fields(2).split(":")(1).trim + ":" + fields(2).split(":")(2).trim, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
+    val value = fields(3).split(":")(1).trim.toDouble
+    RenewableEnergyData(datasetId, startTime, endTime, value)
+  }
+
+  // Creating a fununction to read data from file (for demo purpose: we use "SolarEnergy.txt" and return as a list of RenewableEnergyData
+  def readData(filePath: String): List[RenewableEnergyData] = {
+    val bufferedSource = Source.fromFile(filePath)
+    val dataList = bufferedSource.getLines().map(parseLine).toList
+    bufferedSource.close
+    dataList
+  }
   def menu(): Unit = {
     var exit = false
     while (!exit) {
@@ -20,8 +145,9 @@ object REPS_2024 extends App{
       val choice = scala.io.StdIn.readLine()
       choice match {
         case "1" =>
-        // Write code for this use case goes here
-
+          // Write code for this use case goes here
+          println("Activating Data Collector...")
+          DataCollector.run()
         case "2" =>
           def collectEnergyValue(source: String):Unit = {
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
@@ -93,23 +219,7 @@ object REPS_2024 extends App{
           contents.foreach(println)
 
         case "4" =>
-          // Creating a function to parse a line of data from the file into RenewableEnergyData
-          def parseLine(line: String): RenewableEnergyData = {
-            val fields = line.trim.split(",")
-            val datasetId = fields(0).split(":")(1).trim.toInt
-            val startTime = LocalDateTime.parse(fields(1).split(":")(1).trim + ":" + fields(1).split(":")(2).trim, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-            val endTime = LocalDateTime.parse(fields(2).split(":")(1).trim + ":" + fields(2).split(":")(2).trim, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"))
-            val value = fields(3).split(":")(1).trim.toDouble
-            RenewableEnergyData(datasetId, startTime, endTime, value)
-          }
 
-          // Creating a fununction to read data from file (for demo purpose: we use "SolarEnergy.txt" and return as a list of RenewableEnergyData
-          def readData(filePath: String): List[RenewableEnergyData] = {
-            val bufferedSource = Source.fromFile(filePath)
-            val dataList = bufferedSource.getLines().map(parseLine).toList
-            bufferedSource.close
-            dataList
-          }
 
           // Creating a function to filter data based on user-specified criteria(data filtering)
           def filterData(data: List[RenewableEnergyData], filter: String, value: Option[Any] = None): List[RenewableEnergyData] = {
@@ -216,7 +326,9 @@ object REPS_2024 extends App{
           }
 
         case "5" =>
-        // Write code for this use case goes here
+          println("Checking for issues with energy outputs and equipment...")
+          val sampleData = readData("SolarEnergy.txt")
+          detectAndHandleIssues(sampleData)
         case "6" =>
           println("Program Ends!")
           exit = true
