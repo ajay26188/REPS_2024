@@ -1,0 +1,1 @@
+This project, implemented using Scala, aims to design and develop a functional and efficient power plant that utilizes renewable energy sources to generate electricity for local communities. The primary objective is to contribute to sustainable energy solutions, ensuring a reliable and eco-friendly power supply.
